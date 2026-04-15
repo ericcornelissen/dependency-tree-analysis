@@ -19,7 +19,7 @@ fi
 ## Main
 rm -rf tmp/
 
-echo "Evaluating dependency metrics of top ${TOTAL} Go modules, based on the metric '${METRIC}'"
+echo "Evaluating dependency metrics of top ${TOTAL} Rust (crates.io) crates, based on the metric '${METRIC}'"
 echo "Using page size ${PAGE_SIZE}"
 
 echo ''
@@ -31,7 +31,7 @@ for ((page=1; page<=pages; page++)); do
 
 	response=$( \
 		curl -sX 'GET' \
-			"https://packages.ecosyste.ms/api/v1/registries/crates.io/package_names?page=${page}&per_page=${PAGE_SIZE}&sort=${METRIC}" \
+			"https://packages.ecosyste.ms/api/v1/registries/npmjs.org/package_names?page=${page}&per_page=${PAGE_SIZE}&sort=${METRIC}" \
 			-H 'accept: application/json' \
 	)
 
@@ -47,15 +47,20 @@ while IFS= read -r package; do
 	cd tmp/
 
   echo "Evaluating ${package} ..."
-	go mod init example.com/m >/dev/null 2>&1
-	go get "${package}" >/dev/null 2>&1
+	cargo init >/dev/null 2>&1
+	cargo add "${package}" >/dev/null 2>&1
 
-	tmp=$(go list -m all 2>/dev/null)
-	transitive_count=$(echo "${tmp}" | awk 'NR > 2' | wc -l)
+	tmp=$(cargo tree 2>/dev/null)
+	if [[ "$(echo "$tmp" | wc -l)" == "1" ]]; then
+		echo '  ! crate not found'
+		continue
+	fi
+
+	transitive_count=$(echo "${tmp}" | grep -E '^ ' | wc -l)
 	counts="${counts}${transitive_count}
 "
 
-	echo "  got $(echo "$tmp" | awk 'NR == 2' | awk '{print $2}')"
+	echo "  got $(echo "$tmp" | awk 'NR == 2' | awk '{print $3}')"
 	echo "  has ${transitive_count} dependencies"
 
 	cd ..
@@ -73,5 +78,4 @@ done <<<"${counts}"
 
 echo ''
 echo '== RESULTS =='
-echo "$sum"
 echo "avg: $((sum / count)) (=${sum}/${count})"

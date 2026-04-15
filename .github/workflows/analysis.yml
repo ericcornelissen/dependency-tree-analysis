@@ -14,17 +14,18 @@ jobs:
         include:
           - target: go
           - target: npm
+          - target: rust
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
-      - name: Environment
+      - name: Go environment
         if: ${{ matrix.target == 'go' }}
         run: |
           echo 'Go'
           go version
-      - name: Environment
+      - name: Node.js environment
         if: ${{ matrix.target == 'npm' }}
         run: |
           echo 'Node.js'
@@ -32,6 +33,14 @@ jobs:
 
           echo 'npm'
           npm --version
+      - name: Rust environment
+        if: ${{ matrix.target == 'rust' }}
+        run: |
+          echo 'Rust (compiler)'
+          rustc --version
+
+          echo 'Cargo'
+          cargo --version
       - name: Run analysis based on 'downloads'
         working-directory: ${{ matrix.target }}
         run: ./pipeline.sh 500 100 downloads
