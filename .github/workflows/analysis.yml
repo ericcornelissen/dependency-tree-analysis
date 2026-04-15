@@ -1,20 +1,36 @@
 name: Analysis
 on:
-  workflow_dispatch: ~
+  workflow_dispatch:
+    inputs:
+      total:
+        description: The total number of packages to consider
+        require: true
+        type: number
+      page_size:
+        description: The page size to fetch from ecosyste.ms (`total` should be `n*page_size`)
+        require: true
+        type: number
 
 permissions: read-all
 
 jobs:
   npm:
-    name: ${{ matrix.target }}
+    name: ${{ matrix.target }}, ${{ matrix.metric }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - target: go
-          - target: npm
-          - target: rust
+        target:
+          - go
+          - npm
+          - rust
+        metric:
+          - downloads
+          - dependent_repos_count
+          - docker_dependents_count
+          - docker_downloads_count
+    env:
+      LOG_FILE: ${{ matrix.target }}-${{ matrix.metric }}-${{ inputs.total }}.log
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
@@ -41,15 +57,16 @@ jobs:
 
           echo 'Cargo'
           cargo --version
-      - name: Run analysis based on 'downloads'
+      - name: Run analysis
         working-directory: ${{ matrix.target }}
-        run: ./pipeline.sh 500 100 downloads
-      - name: Run analysis based on 'dependent_repos_count'
-        working-directory: ${{ matrix.target }}
-        run: ./pipeline.sh 500 100 dependent_repos_count
-      - name: Run analysis based on 'docker_dependents_count'
-        working-directory: ${{ matrix.target }}
-        run: ./pipeline.sh 500 100 docker_dependents_count
-      - name: Run analysis based on 'docker_downloads_count'
-        working-directory: ${{ matrix.target }}
-        run: ./pipeline.sh 500 100 docker_downloads_count
+        run: ./pipeline.sh "${TOTAL}" "${PAGE_SIZE}" "${METRIC}" | tee "../${LOG_FILE}"
+        env:
+          TOTAL: ${{ inputs.total }}
+          PAGE_SIZE: ${{ inputs.page_size}}
+          METRIC: ${{ matrix.metric }}
+      - name: Upload analysis log
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          archive: false
+          name: ${{ env.LOG_FILE }}
+          path: ${{ env.LOG_FILE }}

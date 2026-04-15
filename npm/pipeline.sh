@@ -17,8 +17,6 @@ fi
 
 
 ## Main
-rm -rf tmp/
-
 echo "Evaluating dependency metrics of top ${TOTAL} npm packages, based on the metric '${METRIC}'"
 echo "Using page size ${PAGE_SIZE}"
 
@@ -43,23 +41,43 @@ echo ''
 echo '== DETERMINING TRANSITIVE COUNT =='
 counts=''
 while IFS= read -r package; do
+	rm -rf tmp/
 	mkdir tmp/
+
 	cd tmp/
 
-  echo "Evaluating ${package} ..."
+  echo "Evaluating '${package}' ..."
 	npm init -y >/dev/null 2>&1
-	npm install "${package}" --ignore-scripts=false --allow-git=none --audit=false --save-exact >/dev/null 2>&1
+	if ! timeout 30s npm install "${package}" --ignore-scripts=false --allow-git=none --audit=false --save-exact >/dev/null 2>&1; then
+		echo '  ! package not resolved'
+		continue
+	fi
 
 	tmp=$(npm ls --all 2>/dev/null)
+
+	version=$(echo "$tmp" | awk 'NR == 2' | awk -F'@' '{print $2}')
+	if [[ -z "${version}" ]]; then
+		echo '  ! package not found'
+		continue
+	fi
+
 	transitive_count=$(echo "${tmp}" | grep -E '^ ' | grep -vE 'deduped$' | grep -v ' UNMET ' | wc -l)
+	if [[ -z "${transitive_count}" ]]; then
+		echo '  ! dependency count could not be determined'
+		echo ''
+		echo '=== DEBUG START ==='
+		echo "${tmp}"
+		echo '===  DEBUG END  ==='
+		continue
+	fi
+
+	echo "  got ${version}"
+	echo "  has ${transitive_count} dependencies"
+
 	counts="${counts}${transitive_count}
 "
 
-	echo "  got $(echo "$tmp" | awk 'NR == 2' | awk -F'@' '{print $2}')"
-	echo "  has ${transitive_count} dependencies"
-
 	cd ..
-	rm -rf tmp/
 done <<<"${packages}"
 
 echo ''
@@ -67,10 +85,11 @@ echo '== COMPUTING STATS =='
 sum=0
 count=0
 while IFS= read -r n; do
+	echo "$n"
   sum=$((sum + n))
   count=$((count + 1))
-done <<<"${counts}"
+done <<<"$(printf "%s\n" "$counts" | awk 'NF')"
 
 echo ''
 echo '== RESULTS =='
-echo "avg: $((sum / count)) (=${sum}/${count})"
+echo "avg: $(echo "scale=2; ${sum} / ${count}" | bc) (=${sum}/${count})"

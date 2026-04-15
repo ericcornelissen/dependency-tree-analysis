@@ -17,8 +17,6 @@ fi
 
 
 ## Main
-rm -rf tmp/
-
 echo "Evaluating dependency metrics of top ${TOTAL} Go modules, based on the metric '${METRIC}'"
 echo "Using page size ${PAGE_SIZE}"
 
@@ -31,7 +29,7 @@ for ((page=1; page<=pages; page++)); do
 
 	response=$( \
 		curl -sX 'GET' \
-			"https://packages.ecosyste.ms/api/v1/registries/crates.io/package_names?page=${page}&per_page=${PAGE_SIZE}&sort=${METRIC}" \
+			"https://packages.ecosyste.ms/api/v1/registries/proxy.golang.org/package_names?page=${page}&per_page=${PAGE_SIZE}&sort=${METRIC}" \
 			-H 'accept: application/json' \
 	)
 
@@ -43,23 +41,43 @@ echo ''
 echo '== DETERMINING TRANSITIVE COUNT =='
 counts=''
 while IFS= read -r package; do
+	rm -rf tmp/
 	mkdir tmp/
+
 	cd tmp/
 
-  echo "Evaluating ${package} ..."
+  echo "Evaluating '${package}' ..."
 	go mod init example.com/m >/dev/null 2>&1
-	go get "${package}" >/dev/null 2>&1
+	if ! timeout 30s go get "${package}" >/dev/null 2>&1; then
+		echo '  ! module not resolved'
+		continue
+	fi
 
 	tmp=$(go list -m all 2>/dev/null)
+
+	version=$(echo "$tmp" | awk 'NR == 2' | awk '{print $2}')
+	if [[ -z "${version}" ]]; then
+		echo '  ! module not found'
+		continue
+	fi
+
 	transitive_count=$(echo "${tmp}" | awk 'NR > 2' | wc -l)
+	if [[ -z "${transitive_count}" ]]; then
+		echo '  ! dependency count could not be determined'
+		echo ''
+		echo '=== DEBUG START ==='
+		echo "${tmp}"
+		echo '===  DEBUG END  ==='
+		exit 100
+	fi
+
+	echo "  got ${version}"
+	echo "  has ${transitive_count} dependencies"
+
 	counts="${counts}${transitive_count}
 "
 
-	echo "  got $(echo "$tmp" | awk 'NR == 2' | awk '{print $2}')"
-	echo "  has ${transitive_count} dependencies"
-
 	cd ..
-	rm -rf tmp/
 done <<<"${packages}"
 
 echo ''
@@ -67,11 +85,11 @@ echo '== COMPUTING STATS =='
 sum=0
 count=0
 while IFS= read -r n; do
+	echo "$n"
   sum=$((sum + n))
   count=$((count + 1))
-done <<<"${counts}"
+done <<<"$(printf "%s\n" "$counts" | awk 'NF')"
 
 echo ''
 echo '== RESULTS =='
-echo "$sum"
-echo "avg: $((sum / count)) (=${sum}/${count})"
+echo "avg: $(echo "scale=2; ${sum} / ${count}" | bc) (=${sum}/${count})"
