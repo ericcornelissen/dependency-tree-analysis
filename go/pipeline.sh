@@ -55,6 +55,7 @@ while IFS= read -r package; do
 	go mod init example.com/m >/dev/null 2>&1
 	if ! timeout 30s go get "${package}" >/dev/null 2>&1; then
 		echo '  ! module not resolved'
+		cd ..
 		continue
 	fi
 
@@ -63,6 +64,7 @@ while IFS= read -r package; do
 	version=$(echo "$tmp" | awk 'NR == 2' | awk '{print $2}')
 	if [[ -z "${version}" ]]; then
 		echo '  ! module not found'
+		cd ..
 		continue
 	fi
 

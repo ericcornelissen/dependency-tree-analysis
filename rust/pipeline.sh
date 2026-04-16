@@ -55,6 +55,7 @@ while IFS= read -r package; do
 	cargo init >/dev/null 2>&1
 	if ! timeout 30s cargo add "${package}" >/dev/null 2>&1; then
 		echo '  ! crate not resolved'
+		cd ..
 		continue
 	fi
 
@@ -63,6 +64,7 @@ while IFS= read -r package; do
 	version=$(echo "$tmp" | awk 'NR == 2' | awk '{print $3}')
 	if [[ -z "${version}" ]]; then
 		echo '  ! crate not found'
+		cd ..
 		continue
 	fi
 

@@ -56,6 +56,7 @@ while IFS= read -r package; do
 	npm init -y >/dev/null 2>&1
 	if ! timeout 30s npm install "${package}" --ignore-scripts=false --allow-git=none --audit=false --save-exact >/dev/null 2>&1; then
 		echo '  ! package not resolved'
+		cd ..
 		continue
 	fi
 
@@ -64,6 +65,7 @@ while IFS= read -r package; do
 	version=$(echo "$tmp" | awk 'NR == 2' | awk -F'@' '{print $2}')
 	if [[ -z "${version}" ]]; then
 		echo '  ! package not found'
+		cd ..
 		continue
 	fi
 

@@ -64,6 +64,7 @@ while IFS= read -r package; do
 		| jq -r '.latest_release_number // .latest_stable_release_number // empty')
 	if [[ -z "${version}" ]]; then
 		echo '  ! package not found'
+		cd ..
 		continue
 	fi
 
@@ -92,10 +93,12 @@ POMEOF
 	if [[ ${mvn_exit} -eq 124 ]]; then
 		echo '  ! timed out'
 		rm -f "${mvn_stderr}"
+		cd ..
 		continue
 	elif [[ ${mvn_exit} -ne 0 ]]; then
 		echo "  ! maven failed: $(grep -m1 'ERROR\|Could not\|Failed' "${mvn_stderr}" || echo 'unknown error')"
 		rm -f "${mvn_stderr}"
+		cd ..
 		continue
 	fi
 	rm -f "${mvn_stderr}"
@@ -117,6 +120,7 @@ POMEOF
 		echo '=== DEBUG START ==='
 		cat lockfile.json
 		echo '===  DEBUG END  ==='
+		cd ..
 		continue
 	fi
 
