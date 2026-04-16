@@ -44,7 +44,7 @@ counts=''
 while IFS= read -r package; do
 	rm -rf tmp/
 	if [ "${CLEAN}" == 'clean' ]; then
-		go clean -modcache
+		go clean -modcache >/dev/null 2>&1
 	fi
 
 	mkdir tmp/

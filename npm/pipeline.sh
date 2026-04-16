@@ -45,7 +45,7 @@ counts_peer=''
 while IFS= read -r package; do
 	rm -rf tmp/
 	if [ "${CLEAN}" == 'clean' ]; then
-		npm cache clean --force
+		npm cache clean --force >/dev/null 2>&1
 	fi
 
 	mkdir tmp/

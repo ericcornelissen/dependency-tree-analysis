@@ -44,7 +44,7 @@ counts=''
 while IFS= read -r package; do
 	rm -rf tmp/
 	if [ "${CLEAN}" == 'clean' ]; then
-		rm -rf ~/.cargo/git ~/.cargo/registry
+		rm -rf ~/.cargo/git ~/.cargo/registry >/dev/null 2>&1
 	fi
 
 	mkdir tmp/
