@@ -39,8 +39,9 @@ for ((page=1; page<=pages; page++)); do
 done
 
 echo ''
-echo '== DETERMINING TRANSITIVE COUNT =='
-counts=''
+echo '== DETERMINING RELATIONS =='
+counts_transitive=''
+counts_peer=''
 while IFS= read -r package; do
 	rm -rf tmp/
 	if [ "${CLEAN}" == 'clean' ]; then
@@ -75,10 +76,15 @@ while IFS= read -r package; do
 		continue
 	fi
 
+	peer_count=$(cat "node_modules/${package}/package.json" | jq '.peerDependencies // {} | keys | length')
+
 	echo "  got ${version}"
 	echo "  has ${transitive_count} dependencies"
+	echo "  has ${peer_count} peers"
 
-	counts="${counts}${transitive_count}
+	counts_transitive="${counts_transitive}${transitive_count}
+"
+	counts_peer="${counts_peer}${peer_count}
 "
 
 	cd ..
@@ -86,14 +92,23 @@ done <<<"${packages}"
 
 echo ''
 echo '== COMPUTING STATS =='
-sum=0
-count=0
+transitive_count=0
+transitive_sum=0
 while IFS= read -r n; do
-	echo "$n"
-  sum=$((sum + n))
-  count=$((count + 1))
-done <<<"$(printf "%s\n" "$counts" | awk 'NF')"
+	echo "tran: $n"
+  transitive_count=$((transitive_count + 1))
+  transitive_sum=$((transitive_sum + n))
+done <<<"$(printf "%s\n" "$counts_transitive" | awk 'NF')"
+
+peer_count=0
+peer_sum=0
+while IFS= read -r n; do
+	echo "peer: $n"
+  peer_count=$((peer_count + 1))
+  peer_sum=$((peer_sum + n))
+done <<<"$(printf "%s\n" "$counts_peer" | awk 'NF')"
 
 echo ''
 echo '== RESULTS =='
-echo "avg: $(echo "scale=2; ${sum} / ${count}" | bc) (=${sum}/${count})"
+echo "avg # deps : $(echo "scale=2; ${transitive_sum} / ${transitive_count}" | bc) (=${transitive_sum}/${transitive_count})"
+echo "avg # peers: $(echo "scale=2; ${peer_sum} / ${peer_count}" | bc) (=${peer_sum}/${peer_count})"
