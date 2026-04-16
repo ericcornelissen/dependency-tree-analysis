@@ -64,6 +64,11 @@ jobs:
           TOTAL: ${{ inputs.total }}
           PAGE_SIZE: ${{ inputs.page_size}}
           METRIC: ${{ matrix.metric }}
+      - name: Write summary
+        run: |
+          avg=$(grep '^avg:' "${LOG_FILE}" | head -1)
+          echo "### \`${{ matrix.target }}\` / \`${{ matrix.metric }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**${avg}**" >> "$GITHUB_STEP_SUMMARY"
       - name: Upload analysis log
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
