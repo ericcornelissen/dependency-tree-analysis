@@ -34,6 +34,10 @@ for ((page=1; page<=pages; page++)); do
 			-H 'accept: application/json' \
 	)
 
+	if ! echo "${response}" | jq -e 'type == "array"' >/dev/null 2>&1; then
+		echo "  ! API error: $(echo "${response}" | jq -r '.error // "unknown"') (page=${page}, per_page=${PAGE_SIZE})"
+		exit 1
+	fi
 	tmp=$(echo "${response}" | jq -r '.[]')
 	packages="${packages}${tmp}
 "
