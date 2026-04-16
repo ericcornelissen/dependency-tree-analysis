@@ -10,21 +10,50 @@ on:
         description: The page size to fetch from ecosyste.ms (`total` should be `n*page_size`)
         require: true
         type: number
+      run_go:
+        description: Go (pkg.go.dev)
+        type: boolean
+        default: true
+      run_npm:
+        description: JavaScript (npm)
+        type: boolean
+        default: true
+      run_mvn:
+        description: Java (Maven)
+        type: boolean
+        default: true
+      run_rust:
+        description: Rust (crates.io)
+        type: boolean
+        default: true
 
 permissions: read-all
 
 jobs:
+  generate-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      targets: ${{ steps.targets.outputs.value }}
+    steps:
+      - name: Generate target matrix
+        id: targets
+        run: |
+          targets=()
+          [[ '${{ inputs.run_go }}' == 'true' ]] && targets+=('go')
+          [[ '${{ inputs.run_npm }}' == 'true' ]] && targets+=('npm')
+          [[ '${{ inputs.run_mvn }}' == 'true' ]] && targets+=('mvn')
+          [[ '${{ inputs.run_rust }}' == 'true' ]] && targets+=('rust')
+          printf -v json '"%s",' "${targets[@]}"
+          echo "value=[${json%,}]" >> "$GITHUB_OUTPUT"
+
   npm:
+    needs: generate-matrix
     name: ${{ matrix.target }}, ${{ matrix.metric }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - go
-          - mvn
-          - npm
-          - rust
+        target: ${{ fromJSON(needs.generate-matrix.outputs.targets) }}
         metric:
           - downloads
           - dependent_repos_count
