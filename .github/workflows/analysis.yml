@@ -125,6 +125,8 @@ jobs:
           targets=("go" "npm" "mvn" "rust")
 
           {
+            echo "## Transitive Dependency Metric"
+            echo ""
             echo "| metric | go | npm | mvn | rust |"
             echo "| :--- | :---: | :---: | :---: | :---: |"
 
@@ -133,12 +135,36 @@ jobs:
               for target in "${targets[@]}"; do
                 log="logs/${target}-${metric}-${{ inputs.total }}.log"
                 if [[ -f "${log}" ]]; then
-                  if [[ "${target}" == 'npm' ]]; then
+                  if [[ "${target}" == 'npm' || "${target}" == 'mvn' ]]; then
                     value=$(grep '^avg # deps' "${log}" | head -1 | sed 's/^avg # deps : //')
                   else
                     value=$(grep '^avg:' "${log}" | head -1 | sed 's/^avg: //')
                   fi
                   row="${row} ${value} |"
+                else
+                  row="${row} - |"
+                fi
+              done
+              echo "${row}"
+            done
+
+            echo ""
+            echo "## Peer Dependency Metric"
+            echo ""
+            echo "| metric | go | npm | mvn | rust |"
+            echo "| :--- | :---: | :---: | :---: | :---: |"
+
+            for metric in "${metrics[@]}"; do
+              row="| \`${metric}\` |"
+              for target in "${targets[@]}"; do
+                log="logs/${target}-${metric}-${{ inputs.total }}.log"
+                if [[ -f "${log}" ]]; then
+                  if [[ "${target}" == 'npm' || "${target}" == 'mvn' ]]; then
+                    value=$(grep '^avg # peers' "${log}" | head -1 | sed 's/^avg # peers: //')
+                    row="${row} ${value} |"
+                  else
+                    row="${row} - |"
+                  fi
                 else
                   row="${row} - |"
                 fi
