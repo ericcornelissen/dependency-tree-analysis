@@ -10,22 +10,6 @@ on:
         description: The page size to fetch from ecosyste.ms (`total` should be `n*page_size`)
         require: true
         type: number
-      run_go:
-        description: Go (pkg.go.dev)
-        type: boolean
-        default: true
-      run_npm:
-        description: JavaScript (npm)
-        type: boolean
-        default: true
-      run_mvn:
-        description: Java (Maven)
-        type: boolean
-        default: true
-      run_rust:
-        description: Rust (crates.io)
-        type: boolean
-        default: true
 
 permissions: read-all
 
@@ -33,11 +17,6 @@ jobs:
   npm:
     name: ${{ matrix.target }}, ${{ matrix.metric }}
     runs-on: ubuntu-24.04
-    if: |
-      (matrix.target == 'go' && inputs.run_go) ||
-      (matrix.target == 'npm' && inputs.run_npm) ||
-      (matrix.target == 'mvn' && inputs.run_mvn) ||
-      (matrix.target == 'rust' && inputs.run_rust)
     strategy:
       fail-fast: false
       matrix:
