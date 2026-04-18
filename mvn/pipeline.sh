@@ -83,7 +83,7 @@ while IFS= read -r package; do
 POMEOF
 
 	mvn_stderr=$(mktemp)
-	timeout 60s mvn -B -q io.github.chains-project:maven-lockfile:5.15.0:generate -DincludeMavenPlugins=false >/dev/null 2>"${mvn_stderr}"
+	timeout 60s mvn -B -q -Dmaven.repo.local="${HOME}/.m2/repository" io.github.chains-project:maven-lockfile:5.15.0:generate -DincludeMavenPlugins=false >/dev/null 2>"${mvn_stderr}"
 	mvn_exit=$?
 	if [[ ${mvn_exit} -eq 124 ]]; then
 		echo '  ! timed out'
