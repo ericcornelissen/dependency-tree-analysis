@@ -237,11 +237,11 @@ run_job() {
   cp -R "${ROOT_DIR}/${target}/." "${workspace_dir}/"
   (
     cd "${workspace_dir}"
+    export RUSTUP_HOME="${RUSTUP_HOME:-${HOME}/.rustup}"
     export HOME="${workspace_dir}/home"
     export XDG_CACHE_HOME="${workspace_dir}/home/.cache"
     export npm_config_cache="${workspace_dir}/home/.npm"
     export CARGO_HOME="${workspace_dir}/home/.cargo"
-    export RUSTUP_HOME="${workspace_dir}/home/.rustup"
     export GOPATH="${workspace_dir}/home/go"
     export GOMODCACHE="${workspace_dir}/home/go/pkg/mod"
     mkdir -p "${HOME}" "${XDG_CACHE_HOME}"
