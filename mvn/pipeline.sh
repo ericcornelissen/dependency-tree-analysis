@@ -28,11 +28,18 @@ for ((page=1; page<=pages; page++)); do
 	echo "Fetching page ${page} ..."
 
 	url="https://packages.ecosyste.ms/api/v1/registries/repo1.maven.org/package_names?page=${page}&per_page=${PAGE_SIZE}&sort=${METRIC}"
-	response=$(curl -sX 'GET' "${url}" -H 'accept: application/json')
-
-	if ! tmp=$(echo "${response}" | jq -r '.[]' 2>/dev/null); then
-		echo "  ! jq parse error on: ${url}"
+	tmp=""; ok=0
+	for ((attempt=1; attempt<=3; attempt++)); do
+		response=$(curl -sX 'GET' "${url}" -H 'accept: application/json')
+		if tmp=$(echo "${response}" | jq -r '.[]' 2>/dev/null); then
+			ok=1; break
+		fi
+		echo "  ! jq parse error (attempt ${attempt}/3) on: ${url}"
 		echo "  ! response: ${response}" | head -c 200
+		[[ ${attempt} -lt 3 ]] && sleep 2
+	done
+	if [[ ${ok} -eq 0 ]]; then
+		echo "  ! giving up on page ${page}"
 		exit 1
 	fi
 	packages="${packages}${tmp}
