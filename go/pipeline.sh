@@ -51,8 +51,6 @@ echo '== DETERMINING TRANSITIVE COUNT =='
 counts=''
 while IFS= read -r package; do
 	rm -rf tmp/
-	# Clean modcache each iteration to avoid disk exhaustion; acceptable here because Go dependency resolution is fast
-	go clean -modcache >/dev/null 2>&1
 	mkdir tmp/
 	cd tmp/
 
@@ -80,7 +78,8 @@ while IFS= read -r package; do
 		echo '=== DEBUG START ==='
 		echo "${tmp}"
 		echo '===  DEBUG END  ==='
-		exit 100
+		cd ..
+		continue
 	fi
 
 	echo "  got ${version}"

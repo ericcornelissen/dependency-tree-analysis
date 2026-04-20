@@ -40,7 +40,7 @@ for ((page=1; page<=pages; page++)); do
 	done
 	if [[ ${ok} -eq 0 ]]; then
 		echo "  ! giving up on page ${page}"
-		exit 1
+		continue
 	fi
 	packages="${packages}${tmp}
 "

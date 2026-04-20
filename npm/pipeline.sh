@@ -79,6 +79,7 @@ while IFS= read -r package; do
 		echo '=== DEBUG START ==='
 		echo "${tmp}"
 		echo '===  DEBUG END  ==='
+		cd ..
 		continue
 	fi
 
