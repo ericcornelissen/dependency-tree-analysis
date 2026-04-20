@@ -31,7 +31,7 @@ for ((page=1; page<=pages; page++)); do
 	tmp=""; ok=0
 	for ((attempt=1; attempt<=3; attempt++)); do
 		response=$(curl -sX 'GET' "${url}" -H 'accept: application/json')
-		if tmp=$(echo "${response}" | jq -r '.[]' 2>/dev/null); then
+		if tmp=$(echo "${response}" | jq -er 'if type=="array" then .[] else error("not an array") end' 2>/dev/null); then
 			ok=1; break
 		fi
 		echo "  ! jq parse error (attempt ${attempt}/3) on: ${url}"
