@@ -60,12 +60,7 @@ while IFS= read -r package; do
 	# Maven requires an explicit version in pom.xml; fetch it from the registry
 	encoded=$(jq -rn --arg p "${package}" '$p | @uri')
 	version=$(curl -s "https://packages.ecosyste.ms/api/v1/registries/repo1.maven.org/packages/${encoded}" \
-		| jq -r '.latest_release_number // .latest_stable_release_number // empty')
-	if [[ -z "${version}" ]]; then
-		echo '  ! package not found'
-		cd ..
-		continue
-	fi
+		| jq -r '.latest_release_number // .latest_stable_release_number // "LATEST"')
 
 	group_id=$(echo "${package}" | cut -d: -f1)
 	artifact_id=$(echo "${package}" | cut -d: -f2)
@@ -87,7 +82,7 @@ while IFS= read -r package; do
 POMEOF
 
 	mvn_stderr=$(mktemp)
-	timeout 60s mvn -B -q -Dmaven.repo.local="${HOME}/.m2/repository" io.github.chains-project:maven-lockfile:5.15.0:generate -DincludeMavenPlugins=false >/dev/null 2>"${mvn_stderr}"
+	timeout 60s mvn -B -q -Dmaven.repo.local="${HOME}/.m2/repository" org.apache.maven.plugins:maven-dependency-plugin:3.10.0:tree -DoutputType=json -DoutputFile=dependencies.json >/dev/null 2>"${mvn_stderr}"
 	mvn_exit=$?
 	if [[ ${mvn_exit} -eq 124 ]]; then
 		echo '  ! timed out'
@@ -103,21 +98,17 @@ POMEOF
 	rm -f "${mvn_stderr}"
 
 	transitive_count=$(jq '
-		[
-		  .dependencies[]?,
-		  (.. | .children?[]?)
-		] |
-		map(select(has("groupId") and (.scope? != "test"))) |
+		[.. | objects | select(has("groupId") and (.scope? != "test"))] |
 		unique_by(.groupId + ":" + .artifactId) |
-		length
-	' lockfile.json)
-	# subtract 1 for the direct dependency itself
-	transitive_count=$((transitive_count - 1))
+		length - 2
+	' dependencies.json)
+	# length counts all nodes including the tree root (com.example:analysis) and the
+	# package under analysis itself, so subtract 2 to get only its transitive deps
 	if [[ "${transitive_count}" -lt 0 ]]; then
 		echo '  ! dependency count could not be determined'
 		echo ''
 		echo '=== DEBUG START ==='
-		cat lockfile.json
+		cat dependencies.json
 		echo '===  DEBUG END  ==='
 		cd ..
 		continue
